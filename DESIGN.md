@@ -33,6 +33,120 @@ This application will have 3 options for elevators
 
 
 ## Structure
-
+### config/users
+Contains json files that represent a human user.
+Json objects contains the following
+- **Building**: String. The building that this user corresponds to
+- **Card**: boolean. Does the user have an access card?
+- **Access**: List of Strings. List of floor names user has access to
+### config/buildings
+Contains json files that represent a "building" that houses the elevator.
+Json objects contains the following
+- **Number of floors**: Integer. The number of floors that the elevator is able to access
+- **Floor names**: List of Strings. List of floor names (G1, M, 5, etc.)
+- **Main floor**: Integer. The default floor of the elevator
+- **Type of Security**: String. Described in Specifics/Security
+### src/.../Main
+#### Main.java
+- **Global Variables**
+  - Elevator. Elevator. The elevator object used by the simulation
+  - Simulation. Simulation. The simulation object that handles interactions with the elevator
+- **Methods**
+  - Main: 
+    - No arguments
+    - Returns void
+    - Called when human user runs application. Calls other methods that run application.
+  - Setup:
+    - No arguments
+    - Returns void
+    - Called by main. Sets up simulation and elevator based on human input
+  - Run:
+    - No arguments
+    - Returns void
+    - Called by main. Runs simulation.
+### src/.../Simulation
+#### Simulation.java
+*Will be added later after work on elevator is completed
+- **Global Variables**
+- **Methods**
+### src/.../Elevator
+#### Elevator.java
+- **Global Variables**
+  - floors: Array of strings. Contains a list of string representations for the floors that the elevator has access to
+  - currentFloor: Integer. Integer that corresponds with the integer of floors
+  - defaultFloor: Integer. Integer that corresponds with the "default" floor
+  - securityType: SecurityType. enum indicating the type of security the elevator uses
+  - direction: Direction. enum indicating current direction of the elevator
+  - doorStatus: DoorStatus. enum indicating if the door is open or closed. 
+  - floorButtons: Array of booleans. Array size equals size of floors array. ```true``` value indicates a floor that needs to be visited (button has been pushed)
+- **Methods**
+  - moveCurrentFloor
+    - No arguments
+    - Returns void
+    - Sets ```currentFloor``` to next available floor, based on checking ```floorButtons``` and sets corresponding index to ```false```. If all are ```false```, goes to ```defaultFloor```.
+  - addFloor
+    - newFloor:integer
+    - Returns void
+    - Sets ```floorButtons``` at ```newFloor``` index to ```true```.
+  - openDoor
+    - No arguments
+    - Returns void
+    - Sets doorStatus to ```DoorStatus.OPEN``` if not already that.
+  - closeDoor
+    - No arguments
+    - Returns void
+    - Sets doorStatus to ```DoorStatus.CLOSED``` if not already that.
+  - checkSecurity
+    - allowedFloors:Array of Int, desiredFloor: int
+    - Returns boolean
+    - Returns ```true``` if ```securityType``` is ```NONE```, ```desiredFloor``` is in ```allowedFloors```, or user is allowed to access ```desiredFloor```
+  - changeDirection
+    - No arguments
+    - Returns void
+    - Changes Direction to ```UP``` or ```DOWN```, depending on what it currently is.
+  - callEmergencyServices
+    - No arguments
+    - Returns void
+    - Sets every item in ```floorButtons``` to ```false```, ```direction``` to ```STATIONARY```, ```doorStatus``` to ```CLOSED```.
+### src/.../Util
+#### SecurityType.enum
+- NONE
+- GENERAL
+- SPECIFIED
+#### Direction.enum
+- UP
+- DOWN
+- STATIONARY
+#### DoorStatus.enum
+- OPEN
+- CLOSED
 
 ## Testing
+### src/../Elevator
+- moveCurrentFloor_allFalse
+  - Checks that ```currentFloor``` will be set to ```defaultFloor``` when ```floorButtons``` is completely ```false```.
+- moveCurrentFloor
+  - Checks that ```currentFloor``` will be set correctly
+- moveCurrentFloor_doorCloses
+  - Checks that ```doorStatus``` is set to ```CLOSED``` when method is called
+- addFloor
+  - Checks that ```addFloor``` sets the correct index of ```floorButtons``` to ```true```.
+- addFloor_failOnInvalidInput
+  - Checks that ```addFloor``` fails if an invalid input is given (negative or out of bounds integer)
+- addFloor_stayTrueIfCalledTwice
+  - Checks that ```addFloor``` does not ```floorButtons``` at ```newFloor``` to ```false``` if its already set to ```true```
+- openDoor
+  - Checks that ```openDoor``` sets ```doorStatus``` correctly
+- closeDoor
+  - Checks that ```closeDoor``` sets ```doorStatus``` correctly
+- checkSecurity
+  - Checks that ```checkSecurity``` returns the correct boolean in a variety of situations
+    - ```true``` if ```securityType``` is ```NONE```
+    - ```true``` if ```desiredFloor``` is in ```allowedFloors```
+    - ```true``` if ```securityType``` is ```GENERAL``` and ```currentFloor``` > ```defaultFloor```
+    - ```false``` if ```desiredFloor``` is not in ```allowedFloors```
+    - ```false``` if ```securityType``` is ```GENERAL``` and ```currentFloor``` <= ```defaultFloor```
+- changeDirection
+  - Checks that method behaves properly
+- callEmergencyServices
+  - Checks that method sets all global variables correctly
