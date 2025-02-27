@@ -1,4 +1,4 @@
-package com.elevator.app.main;
+package com.project.app.main;
 
 public class Main {
 

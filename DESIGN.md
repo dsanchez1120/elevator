@@ -21,9 +21,9 @@ This is the design document for the elevator application.
 ### Elevator Buttons
 - **Call Buttons:** 1-2 per floor. Indicates to application that elevator should stop at that floor if direction of elevator equals call button direction
 - **Floor Number:** 1-**n**, where **n** is the number of floors. Inside of elevator, indicates which floor elevator should go to.
-- **Open Door**: Opens elevator door if elevator is stopped and closed, keeps the elevator door open if already open
-- **Close Door**: Closes elevator door (allegedly) if already open
-- **Emergency Call**: Calls emergency services in case of emergency. Elevator stops at current floor, does not open door.
+- **Open Door**: A. Opens elevator door if elevator is stopped and closed, keeps the elevator door open if already open
+- **Close Door**: C. Closes elevator door (allegedly) if already open
+- **Emergency Call**: E. Calls emergency services in case of emergency. Elevator stops at current floor, does not open door.
 ### Security
 Some elevators, usually in office-buildings, require an RFID card/chip to use elevator (from ground-floor).
 This application will have 3 options for elevators
@@ -79,11 +79,26 @@ Json objects contains the following
   - direction: Direction. enum indicating current direction of the elevator
   - doorStatus: DoorStatus. enum indicating if the door is open or closed. 
   - floorButtons: Array of booleans. Array size equals size of floors array. ```true``` value indicates a floor that needs to be visited (button has been pushed)
+  - authenticated: boolean. Indicates whether the next floor-related button press is authenticated, defaults to false.
+  - authorizedUsers: Array of strings. Indicates which users can be authenticated
+  - authorizedFloors: Array of booleans. Indicates which floors the most recently authenticated user is able to access.
 - **Methods**
   - moveCurrentFloor
     - No arguments
     - Returns void
     - Sets ```currentFloor``` to next available floor, based on checking ```floorButtons``` and sets corresponding index to ```false```. If all are ```false```, goes to ```defaultFloor```.
+  - buttonPressed
+    - button:string
+    - Returns void
+    - Calls functions based on ```button``` input.
+      - Calls ```addFloor``` if ```button``` corresponds to a floor
+      - Calls ```openDoor``` if ```button``` is "A"
+      - Calls ```closeDoor``` if ```button``` is "C"
+      - Calls ```callEmergencyServices``` if ```button```is "E"
+  - authenticate
+    - card:string, floors:Array of booleans
+    - Returns void
+    - Checks ```card``` against ```authorizedUsers```. If there's a match, sets ```authorized``` to ```true``` and sets ```authorizedFloors``` to ```floors```.
   - addFloor
     - newFloor:integer
     - Returns void
@@ -97,13 +112,14 @@ Json objects contains the following
     - Returns void
     - Sets doorStatus to ```DoorStatus.CLOSED``` if not already that.
   - checkSecurity
-    - allowedFloors:Array of Int, desiredFloor: int
+    - desiredFloor: int
     - Returns boolean
-    - Returns ```true``` if ```securityType``` is ```NONE```, ```desiredFloor``` is in ```allowedFloors```, or user is allowed to access ```desiredFloor```
+    - Returns ```true``` if ```securityType``` is ```NONE```, ```desiredFloor``` is in ```authorizedFloors```, or user is allowed to access ```desiredFloor```
   - changeDirection
     - No arguments
     - Returns void
-    - Changes Direction to ```UP``` or ```DOWN```, depending on what it currently is.
+    - Changes Direction to ```UP``` or ```DOWN```, depending on what it currently is. 
+      - ```STATIONARY``` will change direction towards ```defaultFloor``` or ```UP``` if on default floor 
   - callEmergencyServices
     - No arguments
     - Returns void
@@ -127,13 +143,11 @@ Json objects contains the following
   - Checks that ```currentFloor``` will be set to ```defaultFloor``` when ```floorButtons``` is completely ```false```.
 - moveCurrentFloor
   - Checks that ```currentFloor``` will be set correctly
-- moveCurrentFloor_doorCloses
+  - Checks that ```currentFloor``` will be set to ```defaultFloor``` when ```floorButtons``` is completely ```false```.
   - Checks that ```doorStatus``` is set to ```CLOSED``` when method is called
 - addFloor
   - Checks that ```addFloor``` sets the correct index of ```floorButtons``` to ```true```.
-- addFloor_failOnInvalidInput
   - Checks that ```addFloor``` fails if an invalid input is given (negative or out of bounds integer)
-- addFloor_stayTrueIfCalledTwice
   - Checks that ```addFloor``` does not ```floorButtons``` at ```newFloor``` to ```false``` if its already set to ```true```
 - openDoor
   - Checks that ```openDoor``` sets ```doorStatus``` correctly
