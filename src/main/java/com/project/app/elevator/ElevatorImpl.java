@@ -1,6 +1,5 @@
 package com.project.app.elevator;
 
-import com.project.app.util.Direction;
 import com.project.app.util.DoorStatus;
 import com.project.app.util.SecurityType;
 import lombok.Builder;
@@ -20,9 +19,9 @@ public class ElevatorImpl implements Elevator {
     private ArrayList<Boolean> floorButtons;
     private ArrayList<Boolean> authorizedFloors;
     private ArrayList<String> authorizedUsers;
-    private Direction direction;
     private DoorStatus doorStatus;
     private Boolean authenticated;
+    private int direction;
     private int currentFloor;
 
     @Override
@@ -69,9 +68,9 @@ public class ElevatorImpl implements Elevator {
     public void moveCurrentFloor() {
         closeDoor();
         int moveDir = -1;
-        if (direction.equals(Direction.STATIONARY)) {
+        if (direction == 0) {
             changeDirection();
-        } else if (direction.equals(Direction.UP)) {
+        } else if (direction == 1) {
             moveDir = 1;
         }
 
@@ -131,19 +130,17 @@ public class ElevatorImpl implements Elevator {
 
     protected void changeDirection() {
         if (((currentFloor == 0) ||
-                (direction.equals(Direction.STATIONARY) && currentFloor <= defaultFloor))) {
-            direction = Direction.UP;
-        } else if (currentFloor == floors.size() - 1 || direction.equals(Direction.STATIONARY)) {
-            direction = Direction.DOWN;
-        } else if (direction.equals(Direction.DOWN)) {
-            direction = Direction.UP;
+                (direction == 0 && currentFloor <= defaultFloor))) {
+            direction = 1;
+        } else if (currentFloor == floors.size() - 1 || direction == 0) {
+            direction = -1;
         } else {
-            direction = Direction.DOWN;
+            direction = direction * -1;
         }
     }
 
     private void callEmergencyServices() {
-        direction = Direction.STATIONARY;
+        direction = 0;
         closeDoor();
         Collections.fill(floorButtons, false);
     }

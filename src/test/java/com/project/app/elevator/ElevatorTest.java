@@ -1,6 +1,5 @@
 package com.project.app.elevator;
 
-import com.project.app.util.Direction;
 import com.project.app.util.DoorStatus;
 import com.project.app.util.SecurityType;
 import org.junit.jupiter.api.AfterEach;
@@ -87,7 +86,7 @@ class ElevatorTest {
                                 "Joe",
                                 "Sarah"))
                 )
-                .direction(Direction.STATIONARY)
+                .direction(0)
                 .doorStatus(DoorStatus.CLOSED)
                 .authenticated(false)
                 .currentFloor(0)
@@ -125,7 +124,7 @@ class ElevatorTest {
         // Door should close and elevator should be set to STATIONARY when emergency is pressed
         elevator.buttonPressed("emergency");
         Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
-        Assertions.assertEquals(Direction.STATIONARY, elevator.getDirection());
+        Assertions.assertEquals(0, elevator.getDirection());
         Assertions.assertEquals(boolArr0000, elevator.getFloorButtons());
     }
 
@@ -191,7 +190,7 @@ class ElevatorTest {
     @Test
     @DisplayName("Move Current Floor")
     void moveCurrentFloor() {
-        elevator.setDirection(Direction.UP);
+        elevator.setDirection(1);
         elevator.setFloorButtons(boolArr0001);
         elevator.moveCurrentFloor();
         Assertions.assertEquals(3, elevator.getCurrentFloor());
@@ -288,27 +287,27 @@ class ElevatorTest {
     @Test
     @DisplayName("Change Direction")
     void changeDirection() {
-        elevator.setDirection(Direction.STATIONARY);
+        elevator.setDirection(0);
         // Changes direction to UP if on default floor or lowest floor
         elevator.changeDirection();
-        Assertions.assertEquals(Direction.UP, elevator.getDirection());
-        elevator.setDirection(Direction.DOWN);
+        Assertions.assertEquals(1, elevator.getDirection());
+        elevator.setDirection(-1);
         elevator.setCurrentFloor(0);
         elevator.changeDirection();
-        Assertions.assertEquals(Direction.UP, elevator.getDirection());
+        Assertions.assertEquals(1, elevator.getDirection());
         // Direction stays UP if on minimum floor
         elevator.changeDirection();
-        Assertions.assertEquals(Direction.UP, elevator.getDirection());
+        Assertions.assertEquals(1, elevator.getDirection());
         // Direction swtiches from UP TO DOWN
         elevator.setCurrentFloor(2);
         elevator.changeDirection();
-        Assertions.assertEquals(Direction.DOWN, elevator.getDirection());
+        Assertions.assertEquals(-1, elevator.getDirection());
         // Directions switches to DOWN if stationary and above default floor
-        elevator.setDirection(Direction.STATIONARY);
+        elevator.setDirection(0);
         elevator.changeDirection();
-        Assertions.assertEquals(Direction.DOWN, elevator.getDirection());
+        Assertions.assertEquals(-1, elevator.getDirection());
         // Direction switches from DOWN to UP
         elevator.changeDirection();
-        Assertions.assertEquals(Direction.UP, elevator.getDirection());
+        Assertions.assertEquals(1, elevator.getDirection());
     }
 }
