@@ -126,6 +126,7 @@ class ElevatorTest {
         elevator.buttonPressed("emergency");
         Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
         Assertions.assertEquals(Direction.STATIONARY, elevator.getDirection());
+        Assertions.assertEquals(boolArr0000, elevator.getFloorButtons());
     }
 
     @Test
@@ -195,57 +196,60 @@ class ElevatorTest {
         elevator.moveCurrentFloor();
         Assertions.assertEquals(3, elevator.getCurrentFloor());
         Assertions.assertEquals(false, elevator.getFloorButtons().get(3));
+        Assertions.assertEquals(DoorStatus.OPEN, elevator.getDoorStatus());
 
         elevator.setFloorButtons(boolArr0100);
         elevator.moveCurrentFloor();
         Assertions.assertEquals(1, elevator.getCurrentFloor());
         Assertions.assertEquals(false, elevator.getFloorButtons().get(1));
+        Assertions.assertEquals(DoorStatus.OPEN, elevator.getDoorStatus());
 
         elevator.moveCurrentFloor();
         Assertions.assertEquals(0, elevator.getCurrentFloor());
         Assertions.assertEquals(false, elevator.getFloorButtons().get(3));
+        Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
     }
 
     @Test
-    @DisplayName("Add Floor when Security Type is NONE")
-    void addFloor_whenSecurityTypeIsNone() {
+    @DisplayName("Button Pressed Add Floor when Security Type is NONE")
+    void buttonPressed_addFloorWhenSecurityTypeIsNone() {
         elevator.setSecurityType(SecurityType.NONE);
         // If attempting to add current floor to floorButtons, doorStatus should be OPEN,
         // floorButtons at newFloor should be set to false
-        elevator.setCurrentFloor(2);
-        elevator.addFloor(2);
+        elevator.setCurrentFloor(1);
+        elevator.buttonPressed("2");
         Assertions.assertEquals(DoorStatus.OPEN, elevator.getDoorStatus());
-        Assertions.assertEquals(false, elevator.getFloorButtons().get(2));
+        Assertions.assertEquals(false, elevator.getFloorButtons().get(1));
         // Should set floor 3 to true
-        elevator.addFloor(3);
-        Assertions.assertEquals(true, elevator.getFloorButtons().get(3));
+        elevator.buttonPressed("3");
+        Assertions.assertEquals(true, elevator.getFloorButtons().get(2));
         // Floor 3 should remain true in the event of a redundant call
-        elevator.addFloor(3);
-        Assertions.assertEquals(true, elevator.getFloorButtons().get(3));
+        elevator.buttonPressed("3");
+        Assertions.assertEquals(true, elevator.getFloorButtons().get(2));
     }
 
     @Test
-    @DisplayName("Add Floor when Security Type is GENERAL")
-    void addFloor_whenSecurityTypeIsGeneral() {
+    @DisplayName("Button Pressed Add Floor when Security Type is GENERAL")
+    void buttonPressed_addFloorWhenSecurityTypeIsGeneral() {
         elevator.setSecurityType(SecurityType.GENERAL);
         // User should not be allowed to use elevator from default floor if not authenticated
         elevator.setCurrentFloor(elevator.getDefaultFloor());
         elevator.setAuthenticated(false);
-        elevator.addFloor(2);
+        elevator.buttonPressed("3");
         Assertions.assertFalse(elevator.getFloorButtons().get(2));
 
         // User should be allowed to use elevator from default floor if authenticated
         // Authenticated should be set to false
         elevator.setAuthenticated(true);
-        elevator.addFloor(2);
+        elevator.buttonPressed("3");
         Assertions.assertTrue(elevator.getFloorButtons().get(2));
         Assertions.assertFalse(elevator.getAuthenticated());
 
         // User should be allowed to use elevator from non-default floor if not authenticated
         elevator.setAuthenticated(false);
         elevator.setCurrentFloor(2);
-        elevator.addFloor(1);
-        elevator.addFloor(3);
+        elevator.buttonPressed("2");
+        elevator.buttonPressed("4");
         Assertions.assertTrue(elevator.getFloorButtons().get(1));
         Assertions.assertTrue(elevator.getFloorButtons().get(3));
 
@@ -253,87 +257,32 @@ class ElevatorTest {
         elevator.setAuthenticated(true);
         elevator.setCurrentFloor(1);
         elevator.setFloorButtons(boolArr0100);
-        elevator.addFloor(2);
-        elevator.addFloor(3);
-        Assertions.assertTrue(elevator.getFloorButtons().get(2));
-        Assertions.assertTrue(elevator.getFloorButtons().get(3));
+        elevator.buttonPressed("1");
+        Assertions.assertTrue(elevator.getFloorButtons().get(0));
     }
 
     @Test
-    @DisplayName("Add Floor when Security Type is SPECIFIED")
-    void addFloor_whenSecurityTypeIsSpecified() {
+    @DisplayName("Button Pressed Add Floor when Security Type is SPECIFIED")
+    void buttonPressed_addFloorWhenSecurityTypeIsSpecified() {
         elevator.setSecurityType(SecurityType.SPECIFIED);
         elevator.setAuthorizedFloors(boolArr0101);
 
         // User should not be allowed to use elevator if not authenticated
         elevator.setCurrentFloor(0);
         elevator.setAuthenticated(false);
-        elevator.addFloor(2);
+        elevator.buttonPressed("2");
         Assertions.assertFalse(elevator.getFloorButtons().get(2));
 
         // Authenticated user should not be allowed to access unauthorized floors
         elevator.setAuthenticated(true);
-        elevator.addFloor(2);
+        elevator.buttonPressed("3");
         Assertions.assertFalse(elevator.getFloorButtons().get(2));
 
         // Authenticated user should be allowed to access authorized floors
         elevator.setAuthenticated(true);
-        elevator.addFloor(1);
+        elevator.buttonPressed("2");
         Assertions.assertTrue(elevator.getFloorButtons().get(1));
         Assertions.assertFalse(elevator.getAuthenticated());
-    }
-
-    @Test
-    @DisplayName("Open Door")
-    void openDoor() {
-        elevator.setDoorStatus(DoorStatus.CLOSED);
-        elevator.openDoor();
-        Assertions.assertEquals(DoorStatus.OPEN, elevator.getDoorStatus());
-        elevator.openDoor();
-        Assertions.assertEquals(DoorStatus.OPEN, elevator.getDoorStatus());
-    }
-
-    @Test
-    @DisplayName("Close Door")
-    void closeDoor() {
-        elevator.setDoorStatus(DoorStatus.OPEN);
-        elevator.closeDoor();
-        Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
-        elevator.closeDoor();
-        Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
-    }
-
-    @Test
-    @DisplayName("Check Security")
-    void checkSecurity() {
-        // On NONE security, user should be able to access any floor
-        elevator.setSecurityType(SecurityType.NONE);
-        Assertions.assertTrue(elevator.checkSecurity(2));
-
-        // On GENERAL security, user can only access floors 2-n if authenticated.
-        // If current floor is 2-n, authentication not required.
-        elevator.setSecurityType(SecurityType.GENERAL);
-        elevator.setAuthenticated(true);
-        Assertions.assertTrue(elevator.checkSecurity(3));
-        elevator.setAuthenticated(false);
-        Assertions.assertFalse(elevator.checkSecurity(3));
-        elevator.setCurrentFloor(3);
-        Assertions.assertTrue(elevator.checkSecurity(2));
-
-        // On SPECIFIED security, user can only access authorized floors (agnostic of current floor)
-        elevator.setSecurityType(SecurityType.SPECIFIED);
-        elevator.setCurrentFloor(1);
-        elevator.setAuthorizedFloors(boolArr1101);
-        elevator.setAuthenticated(true);
-        Assertions.assertFalse(elevator.checkSecurity(2));
-        Assertions.assertTrue(elevator.checkSecurity(3));
-        elevator.setCurrentFloor(2);
-        Assertions.assertTrue(elevator.checkSecurity(3));
-        Assertions.assertFalse(elevator.checkSecurity(2));
-        elevator.setAuthenticated(false);
-        Assertions.assertFalse(elevator.checkSecurity(2));
-        elevator.setCurrentFloor(3);
-        Assertions.assertFalse(elevator.checkSecurity(3));
     }
 
     @Test
@@ -361,19 +310,5 @@ class ElevatorTest {
         // Direction switches from DOWN to UP
         elevator.changeDirection();
         Assertions.assertEquals(Direction.UP, elevator.getDirection());
-    }
-
-    @Test
-    @DisplayName("Call Emergency Services")
-    void callEmergencyServices() {
-        elevator.setCurrentFloor(3);
-        elevator.setDirection(Direction.UP);
-        elevator.setDoorStatus(DoorStatus.OPEN);
-        elevator.setFloorButtons(boolArr0101);
-        // Calling emergency services should reset floorButtons, direction to STATIONARY, and doorStatus to CLOSED
-        elevator.callEmergencyServices();
-        Assertions.assertEquals(Direction.STATIONARY, elevator.getDirection());
-        Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
-        Assertions.assertEquals(boolArr0000, elevator.getFloorButtons());
     }
 }
