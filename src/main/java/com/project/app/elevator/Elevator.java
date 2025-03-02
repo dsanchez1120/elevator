@@ -15,16 +15,16 @@ public interface Elevator {
 
     void moveCurrentFloor();
 
-    void addFloor(int newFloor);
+//    void addFloor(int newFloor);
 
-    void openDoor();
+//    private void openDoor();
 
-    void closeDoor();
+//    private void closeDoor();
 
-    boolean checkSecurity(int desiredFloor);
+//    boolean checkSecurity(int desiredFloor);
 
-    void changeDirection();
+//    void changeDirection();
 
-    void callEmergencyServices();
+//    void callEmergencyServices();
 
 }
