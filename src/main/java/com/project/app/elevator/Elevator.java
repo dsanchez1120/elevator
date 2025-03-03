@@ -12,7 +12,7 @@ public interface Elevator {
     /**
      * Simulates an elevator call-button being pressed
      * @param floor int that corresponds to the index of the floor
-     * @param direction int that corresponds with the direction being requested
+     * @param callDir int that corresponds with the direction being requested
      */
     void callButtonPressed(int floor, FloorDirection callDir);
 

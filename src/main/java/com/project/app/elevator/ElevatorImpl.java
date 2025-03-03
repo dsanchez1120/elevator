@@ -69,6 +69,7 @@ public class ElevatorImpl implements Elevator {
      * If {@code} button is {@code "emergency"}, simulates emergency actions (closes doors, stops elevator movement)
      * Otherwise throws an {@code IllegalArgumentException}
      * @param button String that corresponds to elevator button
+     * @throws IllegalArgumentException if invalid argument is given
      */
     @Override
     public void interiorButtonPressed(String button) {
@@ -168,7 +169,7 @@ public class ElevatorImpl implements Elevator {
         };
     }
 
-    // Called by buttonPressed method. If authorized, requested floor (newFloor) will be added to floorButtons
+    // Called by interiorButtonPressed method. If authorized, requested floor (newFloor) will be added to floorButtons
     private void addFloor(int newFloor) {
         if (checkSecurity(newFloor)) {
             if (currentFloor != newFloor) {
