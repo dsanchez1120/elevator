@@ -1,6 +1,7 @@
 package com.project.app.elevator;
 
 import com.project.app.util.DoorStatus;
+import com.project.app.util.FloorDirection;
 import com.project.app.util.SecurityType;
 import lombok.Builder;
 import lombok.Data;
@@ -16,13 +17,49 @@ public class ElevatorImpl implements Elevator {
     private SecurityType securityType;
     private int defaultFloor;
 
-    private ArrayList<Boolean> floorButtons;
+    private ArrayList<FloorDirection> floorsToVisit;
     private ArrayList<Boolean> authorizedFloors;
     private ArrayList<String> authorizedUsers;
     private DoorStatus doorStatus;
     private Boolean authenticated;
     private int direction;
     private int currentFloor;
+
+    /**
+     * Simulates an elevator call-button being pressed
+     * Checks for invalid inputs (out-of-bounds index, requesting BOTH or null on any floor,
+     *      DOWN on bottom floor, or UP on top floor)
+     * Does nothing if requested floor already has the requested direction or is set to BOTH
+     * Sets floor to requested direction if requested direction is NONE
+     * Sets floor to BOTH if requested direction is opposite of current floor's direction.
+     * @param floor int that corresponds to the index of the floor
+     * @param callDir int that corresponds with the direction being requested
+     * @throws IllegalArgumentException Thrown for out-of-bounds index, requesting BOTH for any floor,
+     *      DOWN on bottom floor, or UP on top floor
+     * @throws NullPointerException Thrown if {@code callDir} is null
+     */
+    @Override
+    public void callButtonPressed(int floor, FloorDirection callDir) {
+        // Check for invalid inputs - if these fail, it indicates an error in the code
+        if ((floor == 0 && callDir.equals(FloorDirection.DOWN)) ||
+                (floor == floorsToVisit.size() - 1 && callDir.equals(FloorDirection.UP)) ||
+                (floor < 0 || floor >= floorsToVisit.size()) ||
+                (callDir == FloorDirection.BOTH) || (callDir == FloorDirection.NONE)) {
+            throw new IllegalArgumentException("Invalid Argument Given");
+        } else if (callDir == null) {
+            throw new NullPointerException("FloorDirection argument is null");
+        }
+
+        if (floorsToVisit.get(floor).equals(callDir) || floorsToVisit.get(floor).equals(FloorDirection.BOTH)) {
+            return;
+        } else if (floor == currentFloor) {
+            openDoor();
+        } else if (floorsToVisit.get(floor) == FloorDirection.NONE) {
+            floorsToVisit.set(floor, callDir);
+        } else {
+            floorsToVisit.set(floor, FloorDirection.BOTH);
+        }
+    }
 
     /**
      * Simulates an elevator button being pressed
@@ -34,7 +71,7 @@ public class ElevatorImpl implements Elevator {
      * @param button String that corresponds to elevator button
      */
     @Override
-    public void buttonPressed(String button) {
+    public void interiorButtonPressed(String button) {
         if (floors.contains(button)) {
             addFloor(floors.indexOf(button));
         } else if (button.equals("open")) {
@@ -106,8 +143,12 @@ public class ElevatorImpl implements Elevator {
     private boolean findNextAvailableFloor(int index) {
         if (index == floors.size() || index == -1) {
             return false;
-        } else if (floorButtons.get(index)) {
-            floorButtons.set(index, false);
+        } else if (shouldStop(floorsToVisit.get(index))) {
+            if (floorsToVisit.get(index).equals(FloorDirection.BOTH)) {
+                floorsToVisit.set(index, direction == 1 ? FloorDirection.UP : FloorDirection.DOWN);
+            } else {
+                floorsToVisit.set(index, FloorDirection.NONE);
+            }
             currentFloor = index;
             openDoor();
             return true;
@@ -117,16 +158,38 @@ public class ElevatorImpl implements Elevator {
         }
     }
 
+    // Helper method for findNextAvailableFloor
+    private boolean shouldStop(FloorDirection floorDir) {
+        return switch (floorDir) {
+            case NONE -> false;
+            case UP -> direction == 1;
+            case DOWN -> direction == -1;
+            case BOTH -> true;
+        };
+    }
+
     // Called by buttonPressed method. If authorized, requested floor (newFloor) will be added to floorButtons
     private void addFloor(int newFloor) {
         if (checkSecurity(newFloor)) {
             if (currentFloor != newFloor) {
-                floorButtons.set(newFloor, true);
+                floorsToVisit.set(newFloor, chooseFloorDirection(newFloor));
                 deauthenticate();
             } else {
-                floorButtons.set(newFloor, false);
                 openDoor();
             }
+        }
+    }
+
+    // Helper method for addFloor. Determines which direction should be associated with floor
+    private FloorDirection chooseFloorDirection(int newFloor) {
+        if (floorsToVisit.get(newFloor).equals(FloorDirection.BOTH)) {
+            return FloorDirection.BOTH;
+        } else if (direction == 0) {
+          return newFloor > currentFloor ?  FloorDirection.UP : FloorDirection.DOWN;
+        } else if (((newFloor * direction) > (currentFloor * direction))) {
+            return direction == 1 ? FloorDirection.UP : FloorDirection.DOWN;
+        } else {
+            return direction == 1 ? FloorDirection.DOWN : FloorDirection.UP;
         }
     }
 
@@ -162,7 +225,7 @@ public class ElevatorImpl implements Elevator {
     private void callEmergencyServices() {
         direction = 0;
         closeDoor();
-        Collections.fill(floorButtons, false);
+        Collections.fill(floorsToVisit, FloorDirection.NONE);
     }
 
     private void deauthenticate() {
