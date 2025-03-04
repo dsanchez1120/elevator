@@ -11,6 +11,8 @@ import lombok.Getter;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,11 +30,19 @@ public class UI extends JFrame {
     JPanel elevatorPanel;
     JLabel elevatorLabel;
     JPanel elevatorPanelCenter;
+    ArrayList<JButton> downButtons;
+    ArrayList<JButton> upButtons;
+
     JPanel statsPanel;
     JLabel statsLabel;
     JPanel statsPanelCenter;
+
     JPanel controlPanel;
     JPanel controlPanelCenter;
+    ArrayList<JButton> floorButtons;
+    JButton openDoorButton;
+    JButton emergencyButton;
+    JButton closeDoorButton;
     JPanel controlPanelSouth;
     JLabel controlLabel;
 
@@ -111,8 +121,8 @@ public class UI extends JFrame {
         c.weightx = 0.5;
         c.weighty = 0.5;
         ArrayList<JTextArea> floorSquares = new ArrayList<>();
-        ArrayList<JButton> downButtons = new ArrayList<>();
-        ArrayList<JButton> upButtons = new ArrayList<>();
+        downButtons = new ArrayList<>();
+        upButtons = new ArrayList<>();
         for (String i: elevator.getFloors()) {
             floorSquares.add(new JTextArea(i));
             downButtons.add(new JButton("Down"));
@@ -132,32 +142,86 @@ public class UI extends JFrame {
             c.gridx = 1;
             c.gridy = gridy;
             if (i != 0) {
+                downButtons.get(i).setBackground(new Button().getBackground());
+                downButtons.get(i).setOpaque(true);
+                downButtons.get(i).addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        System.out.println(e.getSource());
+                       elevator.callButtonPressed(downButtons.indexOf(e.getSource()), FloorDirection.DOWN);
+                       updateDownCallButtons(downButtons.indexOf(e.getSource()));
+                       updateStats();
+                    }
+                });
                 elevatorPanelCenter.add(downButtons.get(i), c);
             }
             // Up Button
             c.gridx = 2;
             c.gridy = gridy;
             if (i != numFloors - 1) {
+                upButtons.get(i).setBackground(new Button().getBackground());
+                upButtons.get(i).setOpaque(true);
+                upButtons.get(i).addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        System.out.println(e.getSource());
+                        elevator.callButtonPressed(upButtons.indexOf(e.getSource()), FloorDirection.UP);
+                        updateUpCallButtons(upButtons.indexOf(e.getSource()));
+                        updateStats();
+                    }
+                });
                 elevatorPanelCenter.add(upButtons.get(i), c);
             }
         }
 
     }
 
-    // Initializes floor and function buttons
     private void initializeControlPanelCenter() {
-        ArrayList<JButton> floorButtons = new ArrayList<>();
-        JButton openDoorButton = new JButton("Open Door");
-        JButton emergencyButton = new JButton("Emergency");
-        JButton closeDoorButton = new JButton("Close Door");
+        floorButtons = new ArrayList<>();
+        openDoorButton = new JButton("Open Door");
+        emergencyButton = new JButton("Emergency");
+        closeDoorButton = new JButton("Close Door");
         JPanel floorButtonsPanel = new JPanel(new GridLayout(0, 3));
         JPanel functionButtonsPanel = new JPanel(new GridLayout(1, 3));
         for (String i: elevator.getFloors()) {
             floorButtons.add(new JButton(i));
         }
         for (int i = numFloors - 1; i > -1; i--) {
+            floorButtons.get(i).setOpaque(true);
+            floorButtons.get(i).addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    elevator.interiorButtonPressed(e.getActionCommand());
+                    updateFloorButtons(elevator.getFloors().indexOf(e.getActionCommand()));
+                    updateStats();
+                }
+            });
             floorButtonsPanel.add(floorButtons.get(i));
         }
+        openDoorButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elevator.interiorButtonPressed("open");
+                updateStats();
+            }
+        });
+        emergencyButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elevator.interiorButtonPressed("emergency");
+                updateStats();
+                updateDownCallButtons(-1);
+                updateUpCallButtons(-1);
+                updateFloorButtons(-1);
+            }
+        });
+        closeDoorButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elevator.interiorButtonPressed("close");
+                updateStats();
+            }
+        });
         functionButtonsPanel.add(closeDoorButton);
         functionButtonsPanel.add(emergencyButton);
         functionButtonsPanel.add(openDoorButton);
@@ -167,7 +231,6 @@ public class UI extends JFrame {
         controlPanelCenter.add(functionButtonsPanel, BorderLayout.SOUTH);
     }
 
-    // Initializes Simulation Control Buttons
     private void initializeControlPanelSouth() {
         JButton moveFloorButton = new JButton("Move Floor");
         JButton changeUserButton = new JButton("Change User");
@@ -180,7 +243,6 @@ public class UI extends JFrame {
         controlPanelSouth.add(changeElevatorButton);
     }
 
-    // Initializes stats values
     private void initializeStatsTextAreas() {
         statsTextAreas = new ArrayList<>(
                 Arrays.asList(
@@ -198,14 +260,43 @@ public class UI extends JFrame {
         }
     }
 
-    // Updates Stats Values when called
+    private void updateUpCallButtons(int index) {
+        for (int i = 0; i < numFloors - 1; i++) {
+            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE)) {
+                upButtons.get(i).setBackground(new Button().getBackground());
+            } else if (i == index) {
+                upButtons.get(i).setBackground(Color.YELLOW);
+            }
+        }
+    }
+
+    private void updateDownCallButtons(int index) {
+        for (int i = 1; i < numFloors; i++) {
+            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE)) {
+                downButtons.get(i).setBackground(new Button().getBackground());
+            } else if (i == index) {
+                downButtons.get(i).setBackground(Color.YELLOW);
+            }
+        }
+    }
+
+    private void updateFloorButtons(int index) {
+        for (int i = 0; i < numFloors; i++) {
+            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE)) {
+                floorButtons.get(i).setBackground(new JButton().getBackground());
+            } else if (i == index) {
+                floorButtons.get(i).setBackground(Color.YELLOW);
+            }
+        }
+    }
+
     private void updateStats() {
         statsTextAreas.get(0).setText("Security: " + elevator.getSecurityType().toString());
         statsTextAreas.get(1).setText("Current Floor: " + elevator.getCurrentFloor() + 1);
         statsTextAreas.get(2).setText("Doors: " + elevator.getDoorStatus().toString());
         statsTextAreas.get(3).setText("Authentication: " + elevator.getAuthenticated().toString());
         statsTextAreas.get(4).setText("Direction: " + getDirectionAsString(elevator.getDirection()));
-        statsTextAreas.get(5).setText("Doors: " + user.getName());
+        statsTextAreas.get(5).setText("User: " + user.getName());
     }
 
     private String getDirectionAsString(int direction) {
