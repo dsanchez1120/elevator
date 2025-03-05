@@ -218,8 +218,8 @@ class ElevatorTest {
     }
 
     @Test
-    @DisplayName("Move Current Floor")
-    void moveCurrentFloor() {
+    @DisplayName("Move Current Floor With Normal Inputs")
+    void moveCurrentFloor_withNormalInputs() {
         elevator.setDirection(1);
         elevator.setFloorsToVisit(arr000U);
         elevator.moveCurrentFloor();
@@ -237,6 +237,28 @@ class ElevatorTest {
         Assertions.assertEquals(0, elevator.getCurrentFloor());
         Assertions.assertEquals(FloorDirection.NONE, elevator.getFloorsToVisit().get(3));
         Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
+    }
+
+    @Test@DisplayName("Move Current Floor When Call Button is Pressed")
+    void moveCurrentFloor_whenCallButtonIsPressed() {
+        elevator.callButtonPressed(2, FloorDirection.DOWN);
+        elevator.moveCurrentFloor();
+        Assertions.assertEquals(2, elevator.getCurrentFloor());
+        Assertions.assertEquals(-1, elevator.getDirection());
+
+        elevator.setCurrentFloor(0);
+        elevator.setDirection(0);
+        elevator.callButtonPressed(1, FloorDirection.DOWN);
+        elevator.callButtonPressed(1, FloorDirection.UP);
+        elevator.callButtonPressed(3, FloorDirection.DOWN);
+        elevator.moveCurrentFloor();
+        Assertions.assertEquals(1, elevator.getCurrentFloor());
+        Assertions.assertEquals(FloorDirection.DOWN, elevator.getFloorsToVisit().get(1));
+        elevator.moveCurrentFloor();
+        Assertions.assertEquals(3, elevator.getCurrentFloor());
+        elevator.moveCurrentFloor();
+        Assertions.assertEquals(1, elevator.getCurrentFloor());
+
     }
 
     @Test
@@ -343,4 +365,5 @@ class ElevatorTest {
         elevator.changeDirection();
         Assertions.assertEquals(1, elevator.getDirection());
     }
+
 }

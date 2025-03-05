@@ -132,11 +132,18 @@ public class ElevatorImpl implements Elevator {
         if (direction == 0) {
             changeDirection();
         }
+        // Check from currentFloor in current direction
         if (!findNextAvailableFloor(currentFloor)) {
-            changeDirection();
-            if (!findNextAvailableFloor(currentFloor)) {
-                currentFloor = defaultFloor;
-                changeDirection();
+            // Change direction and check from opposite end
+            direction = direction * -1;
+            if (!findNextAvailableFloor(direction == -1 ? floors.size() - 1 : 0)) {
+                // Change direction and check from opposite end
+                direction = direction * -1;
+                if (!findNextAvailableFloor(direction == -1 ? floors.size() - 1 : 0)) {
+                    // If no floors can be found in entire array, reset current floor and direction.
+                    currentFloor = defaultFloor;
+                    changeDirection();
+                }
             }
         }
     }
@@ -146,7 +153,7 @@ public class ElevatorImpl implements Elevator {
             return false;
         } else if (shouldStop(floorsToVisit.get(index))) {
             if (floorsToVisit.get(index).equals(FloorDirection.BOTH)) {
-                floorsToVisit.set(index, direction == 1 ? FloorDirection.UP : FloorDirection.DOWN);
+                floorsToVisit.set(index, direction == 1 ? FloorDirection.DOWN : FloorDirection.UP);
             } else {
                 floorsToVisit.set(index, FloorDirection.NONE);
             }
@@ -206,7 +213,7 @@ public class ElevatorImpl implements Elevator {
         }
     }
 
-    private boolean checkSecurity(int desiredFloor) {
+    public boolean checkSecurity(int desiredFloor) {
         return securityType.equals(SecurityType.NONE) ||
                 (securityType.equals(SecurityType.GENERAL) && (authenticated || currentFloor != defaultFloor)) ||
                 authenticated && authorizedFloors.get(desiredFloor);
