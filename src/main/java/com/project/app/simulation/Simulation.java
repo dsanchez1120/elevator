@@ -27,7 +27,6 @@ public class Simulation {
     private String simulationName;
     private int numFloors;
 
-    // FIXME Switch to constructor without arguments, let Swing UI handle creation.
     public Simulation(String elevatorName, String userName) throws IOException {
 //        this.elevator = buildElevator(elevatorName);
 //        this.user = buildUser(userName);

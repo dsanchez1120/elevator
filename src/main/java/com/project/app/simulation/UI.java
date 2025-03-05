@@ -30,11 +30,13 @@ public class UI extends JFrame {
     JPanel elevatorPanel;
     JLabel elevatorLabel;
     JPanel elevatorPanelCenter;
+    ArrayList<JTextArea> floorSquares;
     ArrayList<JButton> downButtons;
     ArrayList<JButton> upButtons;
 
     JPanel statsPanel;
     JLabel statsLabel;
+    JTextArea allowedFloorsTA;
     JPanel statsPanelCenter;
 
     JPanel controlPanel;
@@ -62,7 +64,7 @@ public class UI extends JFrame {
         setSize(X_DIM, Y_DIM);
         setLayout(new BorderLayout());
 
-        elevator = buildElevator("none_1.json");
+        elevator = buildElevator("none_5.json");
         user = buildUser("joe.json");
 
         initializeElevatorPanel();
@@ -97,7 +99,12 @@ public class UI extends JFrame {
         for (JTextArea ta: statsTextAreas) {
             statsPanelCenter.add(ta);
         }
+        allowedFloorsTA = new JTextArea("Allowed Floors: " + getAllowedFloorAsString());
+        allowedFloorsTA.setBackground(Color.gray);
+        allowedFloorsTA.setAlignmentX(0.5f);
+        allowedFloorsTA.setBorder(BorderFactory.createLineBorder(Color.black, 2));
         statsPanel.add(statsLabel, BorderLayout.NORTH);
+        statsPanel.add(allowedFloorsTA, BorderLayout.SOUTH);
         statsPanel.add(statsPanelCenter, BorderLayout.CENTER);
         add(statsPanel, BorderLayout.NORTH);
     }
@@ -120,7 +127,7 @@ public class UI extends JFrame {
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 0.5;
         c.weighty = 0.5;
-        ArrayList<JTextArea> floorSquares = new ArrayList<>();
+        floorSquares = new ArrayList<>();
         downButtons = new ArrayList<>();
         upButtons = new ArrayList<>();
         for (String i: elevator.getFloors()) {
@@ -191,8 +198,10 @@ public class UI extends JFrame {
             floorButtons.get(i).addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    elevator.interiorButtonPressed(e.getActionCommand());
-                    updateFloorButtons(elevator.getFloors().indexOf(e.getActionCommand()));
+                    if (elevator.checkSecurity(elevator.getFloors().indexOf(e.getActionCommand()))) {
+                        elevator.interiorButtonPressed(e.getActionCommand());
+                        updateFloorButtons(elevator.getFloors().indexOf(e.getActionCommand()));
+                    }
                     updateStats();
                 }
             });
@@ -213,6 +222,7 @@ public class UI extends JFrame {
                 updateDownCallButtons(-1);
                 updateUpCallButtons(-1);
                 updateFloorButtons(-1);
+                updateFloorSquares();
             }
         });
         closeDoorButton.addActionListener(new ActionListener() {
@@ -234,8 +244,28 @@ public class UI extends JFrame {
     private void initializeControlPanelSouth() {
         JButton moveFloorButton = new JButton("Move Floor");
         JButton changeUserButton = new JButton("Change User");
-        JButton authorizeButton = new JButton("Authorize");
+        JButton authorizeButton = new JButton("Authenticate");
         JButton changeElevatorButton = new JButton("Change Elevator");
+
+        moveFloorButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elevator.moveCurrentFloor();
+                updateFloorSquares();
+                updateStats();
+                updateFloorButtons(-1);
+                updateUpCallButtons(-1);
+                updateDownCallButtons(-1);
+            }
+        });
+
+        authorizeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elevator.authenticate(user.getName(), (ArrayList<Boolean>) user.getAuthorizedFloors().clone());
+                updateStats();
+            }
+        });
 
         controlPanelSouth.add(moveFloorButton);
         controlPanelSouth.add(changeUserButton);
@@ -247,7 +277,7 @@ public class UI extends JFrame {
         statsTextAreas = new ArrayList<>(
                 Arrays.asList(
                         new JTextArea("Security: " + elevator.getSecurityType().toString()),
-                        new JTextArea("Current Floor: " + elevator.getCurrentFloor() + 1),
+                        new JTextArea("Current Floor: " + (elevator.getCurrentFloor() + 1)),
                         new JTextArea("Doors: " + elevator.getDoorStatus().toString()),
                         new JTextArea("Authentication: " + elevator.getAuthenticated().toString()),
                         new JTextArea("Direction: " + getDirectionAsString(elevator.getDirection())),
@@ -260,9 +290,20 @@ public class UI extends JFrame {
         }
     }
 
+    private void updateFloorSquares() {
+        for (int i = 0; i < numFloors; i++) {
+            if (i == elevator.getCurrentFloor()) {
+                floorSquares.get(i).setBackground(Color.YELLOW);
+            } else {
+                floorSquares.get(i).setBackground(Color.gray);
+            }
+        }
+    }
+
     private void updateUpCallButtons(int index) {
         for (int i = 0; i < numFloors - 1; i++) {
-            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE)) {
+            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE) ||
+                    elevator.getFloorsToVisit().get(i).equals(FloorDirection.DOWN)) {
                 upButtons.get(i).setBackground(new Button().getBackground());
             } else if (i == index) {
                 upButtons.get(i).setBackground(Color.YELLOW);
@@ -272,7 +313,8 @@ public class UI extends JFrame {
 
     private void updateDownCallButtons(int index) {
         for (int i = 1; i < numFloors; i++) {
-            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE)) {
+            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE) ||
+                    elevator.getFloorsToVisit().get(i).equals(FloorDirection.UP)) {
                 downButtons.get(i).setBackground(new Button().getBackground());
             } else if (i == index) {
                 downButtons.get(i).setBackground(Color.YELLOW);
@@ -292,11 +334,21 @@ public class UI extends JFrame {
 
     private void updateStats() {
         statsTextAreas.get(0).setText("Security: " + elevator.getSecurityType().toString());
-        statsTextAreas.get(1).setText("Current Floor: " + elevator.getCurrentFloor() + 1);
+        statsTextAreas.get(1).setText("Current Floor: " + (elevator.getCurrentFloor() + 1));
         statsTextAreas.get(2).setText("Doors: " + elevator.getDoorStatus().toString());
         statsTextAreas.get(3).setText("Authentication: " + elevator.getAuthenticated().toString());
         statsTextAreas.get(4).setText("Direction: " + getDirectionAsString(elevator.getDirection()));
         statsTextAreas.get(5).setText("User: " + user.getName());
+    }
+
+    private String getAllowedFloorAsString() {
+        StringBuilder output = new StringBuilder();
+        for (int i = 0; i < numFloors; i++) {
+            if (user.getAuthorizedFloors().get(i)) {
+                output.append(i == numFloors - 1 ? elevator.getFloors().get(i) : (elevator.getFloors().get(i) + ", "));
+            }
+        }
+        return output.toString();
     }
 
     private String getDirectionAsString(int direction) {
@@ -336,7 +388,10 @@ public class UI extends JFrame {
         JsonNode jsonNode = objectMapper.readTree(new File("config/users/" + userName));
         return User.builder()
                 .name(jsonNode.get("name").asText())
-                .authorizedFloors(new ArrayList<>(Collections.nCopies(numFloors, false)))
+                .authorizedFloors(new ArrayList<>(
+                        objectMapper.readValue(jsonNode.get("allowedFloors").toString(),
+                                new TypeReference<java.util.List<Boolean>>() {})
+                ))
                 .build();
     }
 }
