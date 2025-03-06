@@ -190,15 +190,16 @@ public class ElevatorImpl implements Elevator {
 
     // Helper method for addFloor. Determines which direction should be associated with floor
     private FloorDirection chooseFloorDirection(int newFloor) {
-        if (floorsToVisit.get(newFloor).equals(FloorDirection.BOTH)) {
-            return FloorDirection.BOTH;
-        } else if (direction == 0) {
-          return newFloor > currentFloor ?  FloorDirection.UP : FloorDirection.DOWN;
-        } else if (((newFloor * direction) > (currentFloor * direction))) {
-            return direction == 1 ? FloorDirection.UP : FloorDirection.DOWN;
-        } else {
-            return direction == 1 ? FloorDirection.DOWN : FloorDirection.UP;
-        }
+        FloorDirection dirInRelationToCurrentFloor = currentFloor < newFloor ? FloorDirection.UP : FloorDirection.DOWN;
+        return switch (floorsToVisit.get(newFloor)) {
+            // Floor will already be visited, no need to update
+            case BOTH -> FloorDirection.BOTH;
+            // Floor should be set to direction in relation to current floor
+            case NONE -> dirInRelationToCurrentFloor;
+            // If floor will already be visited on current direction then no update, else visit on both directions.
+            case UP -> dirInRelationToCurrentFloor.equals(FloorDirection.UP) ? FloorDirection.UP : FloorDirection.BOTH;
+            case DOWN -> dirInRelationToCurrentFloor.equals(FloorDirection.DOWN) ? FloorDirection.DOWN : FloorDirection.BOTH;
+        };
     }
 
     private void openDoor() {
