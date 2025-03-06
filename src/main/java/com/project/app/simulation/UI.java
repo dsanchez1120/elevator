@@ -7,7 +7,6 @@ import com.project.app.elevator.ElevatorImpl;
 import com.project.app.util.DoorStatus;
 import com.project.app.util.FloorDirection;
 import com.project.app.util.SecurityType;
-import lombok.Getter;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,34 +21,32 @@ import java.util.List;
 
 public class UI extends JFrame {
     // Constants
-    private final int FRAME_X_DIMENSION = 600;
-    private final int FRAME_Y_DIMENSION = 600;
+    private final String ELEVATOR_CONFIG_DIRECTORY_PATH = "config/elevator/";
+    private final String USERS_CONFIG_DIRECTORY_PATH = "config/users/";
+    private final String ELEVATOR_SIMULATION_TITLE = "Elevator Simulation";
 
     // Swing Components
-    JFrame frame;
-    JPanel elevatorPanel;
-    JLabel elevatorLabel;
-    JPanel elevatorPanelCenter;
-    ArrayList<JTextArea> floorSquares;
-    ArrayList<JButton> downButtons;
-    ArrayList<JButton> upButtons;
+    static JPanel elevatorPanel;
+    static JLabel elevatorLabel;
+    static JPanel elevatorPanelCenter;
+    static ArrayList<JTextArea> floorSquares;
+    static ArrayList<JButton> downButtons;
+    static ArrayList<JButton> upButtons;
 
-    JPanel statsPanel;
-    JLabel statsLabel;
-    JTextArea allowedFloorsTA;
-    JPanel statsPanelCenter;
+    static JPanel statsPanel;
+    static JLabel statsLabel;
+    static JTextArea allowedFloorsTA;
+    static JPanel statsPanelCenter;
+    static ArrayList<JTextArea> statsTextAreas;
 
-    JPanel controlPanel;
-    JPanel controlPanelCenter;
-    ArrayList<JButton> floorButtons;
-    JButton openDoorButton;
-    JButton emergencyButton;
-    JButton closeDoorButton;
-    JPanel controlPanelSouth;
-    JLabel controlLabel;
-
-    ArrayList<JTextArea> statsTextAreas;
-
+    static JPanel controlPanel;
+    static JPanel controlPanelCenter;
+    static ArrayList<JButton> floorButtons;
+    static JButton openDoorButton;
+    static JButton emergencyButton;
+    static JButton closeDoorButton;
+    static JPanel controlPanelSouth;
+    static JLabel controlLabel;
 
     // Elevator Variables
     private ElevatorImpl elevator;
@@ -57,15 +54,15 @@ public class UI extends JFrame {
     private String simulationName;
     private int numFloors;
 
-    UI(String name, int X_DIM, int Y_DIM) throws IOException {
+    UI(int X_DIM, int Y_DIM) throws IOException {
         // Create and Configure Frame
-        setTitle(name);
+        setTitle(ELEVATOR_SIMULATION_TITLE);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(X_DIM, Y_DIM);
         setLayout(new BorderLayout());
 
-        elevator = buildElevator("none_5.json");
-        user = buildUser("joe.json");
+        elevator = buildElevator(elevatorSetup());
+        user = buildUser(userSetup());
 
         initializeElevatorPanel();
         initializeStatsPanel();
@@ -91,7 +88,7 @@ public class UI extends JFrame {
 
     private void initializeStatsPanel() {
         statsPanel = new JPanel(new BorderLayout());
-        statsLabel = new JLabel("Elevator Data", SwingConstants.CENTER);
+        statsLabel = new JLabel(simulationName, SwingConstants.CENTER);
         statsPanel.setBackground(Color.LIGHT_GRAY);
         statsPanel.setBorder(BorderFactory.createLineBorder(Color.black, 2));
         statsPanelCenter = new JPanel(new GridLayout(2, 3));
@@ -242,11 +239,13 @@ public class UI extends JFrame {
     }
 
     private void initializeControlPanelSouth() {
+        // Initialize Buttons
         JButton moveFloorButton = new JButton("Move Floor");
         JButton changeUserButton = new JButton("Change User");
         JButton authorizeButton = new JButton("Authenticate");
         JButton changeElevatorButton = new JButton("Change Elevator");
 
+        // Adds functionality to buttons
         moveFloorButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -258,7 +257,18 @@ public class UI extends JFrame {
                 updateDownCallButtons(-1);
             }
         });
-
+        changeUserButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    user = buildUser(userSetup());
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+                allowedFloorsTA.setText("Allowed Floors: " + getAllowedFloorAsString());
+                updateStats();
+            }
+        });
         authorizeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -266,7 +276,22 @@ public class UI extends JFrame {
                 updateStats();
             }
         });
+        changeElevatorButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    elevator = buildElevator(elevatorSetup());
+                    user = buildUser(userSetup());
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+                allowedFloorsTA.setText("Allowed Floors: " + getAllowedFloorAsString());
+                updateStats();
+                elevatorReset();
+            }
+        });
 
+        // Add Buttons to Frame
         controlPanelSouth.add(moveFloorButton);
         controlPanelSouth.add(changeUserButton);
         controlPanelSouth.add(authorizeButton);
@@ -277,7 +302,7 @@ public class UI extends JFrame {
         statsTextAreas = new ArrayList<>(
                 Arrays.asList(
                         new JTextArea("Security: " + elevator.getSecurityType().toString()),
-                        new JTextArea("Current Floor: " + (elevator.getCurrentFloor() + 1)),
+                        new JTextArea("Current Floor: " + (elevator.getFloors().get(elevator.getCurrentFloor()))),
                         new JTextArea("Doors: " + elevator.getDoorStatus().toString()),
                         new JTextArea("Authentication: " + elevator.getAuthenticated().toString()),
                         new JTextArea("Direction: " + getDirectionAsString(elevator.getDirection())),
@@ -324,7 +349,8 @@ public class UI extends JFrame {
 
     private void updateFloorButtons(int index) {
         for (int i = 0; i < numFloors; i++) {
-            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE)) {
+            if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE) ||
+                    i == elevator.getCurrentFloor()) {
                 floorButtons.get(i).setBackground(new JButton().getBackground());
             } else if (i == index) {
                 floorButtons.get(i).setBackground(Color.YELLOW);
@@ -332,9 +358,58 @@ public class UI extends JFrame {
         }
     }
 
+    private void elevatorReset() {
+        elevatorPanel.removeAll();
+        initializeElevatorPanel();
+        controlPanel.removeAll();
+        initializeControlPanel();
+        updateFloorSquares();
+        revalidate();
+    }
+
+    private String elevatorSetup() {
+        File elevatorDir = new File(ELEVATOR_CONFIG_DIRECTORY_PATH);
+        File[] elevatorFilesUntransformed = elevatorDir.listFiles(
+                pathname -> pathname.toString().endsWith(".json"));
+        Object[] elevatorFiles = Arrays.stream(elevatorFilesUntransformed)
+                .map(f -> f.toString().substring(
+                        ELEVATOR_CONFIG_DIRECTORY_PATH.length(),
+                        f.toString().length() - 5))
+                .toArray();
+        Object elevatorChoice = JOptionPane.showInputDialog(
+                this,
+                "Choose",
+                "Menu",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                elevatorFiles,
+                elevatorFiles[0]);
+        return elevatorChoice.toString();
+    }
+
+    private String userSetup() {
+        File userDir = new File(USERS_CONFIG_DIRECTORY_PATH + numFloors);
+        File[] userFilesUntransformed = userDir.listFiles(
+                pathname -> pathname.toString().endsWith(".json"));
+        Object[] userFiles = Arrays.stream(userFilesUntransformed)
+                .map(f -> f.toString().substring(
+                        USERS_CONFIG_DIRECTORY_PATH.length() + 2,
+                        f.toString().length() - 5))
+                .toArray();
+        Object userChoice = JOptionPane.showInputDialog(
+                this,
+                "Choose",
+                "Menu",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                userFiles,
+                userFiles[0]);
+        return userChoice.toString();
+    }
+
     private void updateStats() {
         statsTextAreas.get(0).setText("Security: " + elevator.getSecurityType().toString());
-        statsTextAreas.get(1).setText("Current Floor: " + (elevator.getCurrentFloor() + 1));
+        statsTextAreas.get(1).setText("Current Floor: " + (elevator.getFloors().get(elevator.getCurrentFloor())));
         statsTextAreas.get(2).setText("Doors: " + elevator.getDoorStatus().toString());
         statsTextAreas.get(3).setText("Authentication: " + elevator.getAuthenticated().toString());
         statsTextAreas.get(4).setText("Direction: " + getDirectionAsString(elevator.getDirection()));
@@ -362,7 +437,7 @@ public class UI extends JFrame {
 
     private ElevatorImpl buildElevator(String elevatorName) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(new File("config/elevator/" + elevatorName));
+        JsonNode jsonNode = objectMapper.readTree(new File("config/elevator/" + elevatorName + ".json"));
         simulationName = jsonNode.get("ElevatorName").asText();
         numFloors = jsonNode.get("numFloors").asInt();
         return ElevatorImpl.builder()
@@ -385,7 +460,7 @@ public class UI extends JFrame {
 
     private User buildUser(String userName) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(new File("config/users/" + userName));
+        JsonNode jsonNode = objectMapper.readTree(new File("config/users/" + numFloors + "/" + userName + ".json"));
         return User.builder()
                 .name(jsonNode.get("name").asText())
                 .authorizedFloors(new ArrayList<>(

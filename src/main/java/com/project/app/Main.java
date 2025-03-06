@@ -1,4 +1,4 @@
-package com.project.app.main;
+package com.project.app;
 
 import com.project.app.simulation.Simulation;
 
