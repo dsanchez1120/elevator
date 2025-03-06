@@ -1,0 +1,9 @@
+{
+  "ElevatorName": "Elevator with 5 Floors",
+  "floors": ["L", "2", "3", "4", "5"],
+  "securityType": "GENERAL",
+  "defaultFloor": 0,
+  "authorizedUsers": ["Joe", "Sam", "Sarah"],
+  "currentFloor": 0,
+  "numFloors": 5
+}

@@ -132,11 +132,18 @@ public class ElevatorImpl implements Elevator {
         if (direction == 0) {
             changeDirection();
         }
+        // Check from currentFloor in current direction
         if (!findNextAvailableFloor(currentFloor)) {
-            changeDirection();
-            if (!findNextAvailableFloor(currentFloor)) {
-                currentFloor = defaultFloor;
-                changeDirection();
+            // Change direction and check from opposite end
+            direction = direction * -1;
+            if (!findNextAvailableFloor(direction == -1 ? floors.size() - 1 : 0)) {
+                // Change direction and check from opposite end
+                direction = direction * -1;
+                if (!findNextAvailableFloor(direction == -1 ? floors.size() - 1 : 0)) {
+                    // If no floors can be found in entire array, reset current floor and direction.
+                    currentFloor = defaultFloor;
+                    changeDirection();
+                }
             }
         }
     }
@@ -146,7 +153,7 @@ public class ElevatorImpl implements Elevator {
             return false;
         } else if (shouldStop(floorsToVisit.get(index))) {
             if (floorsToVisit.get(index).equals(FloorDirection.BOTH)) {
-                floorsToVisit.set(index, direction == 1 ? FloorDirection.UP : FloorDirection.DOWN);
+                floorsToVisit.set(index, direction == 1 ? FloorDirection.DOWN : FloorDirection.UP);
             } else {
                 floorsToVisit.set(index, FloorDirection.NONE);
             }
@@ -183,15 +190,16 @@ public class ElevatorImpl implements Elevator {
 
     // Helper method for addFloor. Determines which direction should be associated with floor
     private FloorDirection chooseFloorDirection(int newFloor) {
-        if (floorsToVisit.get(newFloor).equals(FloorDirection.BOTH)) {
-            return FloorDirection.BOTH;
-        } else if (direction == 0) {
-          return newFloor > currentFloor ?  FloorDirection.UP : FloorDirection.DOWN;
-        } else if (((newFloor * direction) > (currentFloor * direction))) {
-            return direction == 1 ? FloorDirection.UP : FloorDirection.DOWN;
-        } else {
-            return direction == 1 ? FloorDirection.DOWN : FloorDirection.UP;
-        }
+        FloorDirection dirInRelationToCurrentFloor = currentFloor < newFloor ? FloorDirection.UP : FloorDirection.DOWN;
+        return switch (floorsToVisit.get(newFloor)) {
+            // Floor will already be visited, no need to update
+            case BOTH -> FloorDirection.BOTH;
+            // Floor should be set to direction in relation to current floor
+            case NONE -> dirInRelationToCurrentFloor;
+            // If floor will already be visited on current direction then no update, else visit on both directions.
+            case UP -> dirInRelationToCurrentFloor.equals(FloorDirection.UP) ? FloorDirection.UP : FloorDirection.BOTH;
+            case DOWN -> dirInRelationToCurrentFloor.equals(FloorDirection.DOWN) ? FloorDirection.DOWN : FloorDirection.BOTH;
+        };
     }
 
     private void openDoor() {
@@ -206,7 +214,7 @@ public class ElevatorImpl implements Elevator {
         }
     }
 
-    private boolean checkSecurity(int desiredFloor) {
+    public boolean checkSecurity(int desiredFloor) {
         return securityType.equals(SecurityType.NONE) ||
                 (securityType.equals(SecurityType.GENERAL) && (authenticated || currentFloor != defaultFloor)) ||
                 authenticated && authorizedFloors.get(desiredFloor);

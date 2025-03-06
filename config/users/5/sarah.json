@@ -1,0 +1,4 @@
+{
+  "name": "Sarah",
+  "allowedFloors": [true, false, false, false, true]
+}
