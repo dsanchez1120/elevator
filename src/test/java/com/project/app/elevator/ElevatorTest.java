@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import org.mockito.Mock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,7 +46,6 @@ class ElevatorTest {
                     true,
                     true));
 
-    @Mock
     private ElevatorImpl elevator;
 
     @BeforeEach
@@ -86,10 +84,6 @@ class ElevatorTest {
                 .authenticated(false)
                 .currentFloor(0)
                 .build();
-    }
-
-    @AfterEach
-    void tearDown() {
     }
 
     @Test
@@ -151,9 +145,9 @@ class ElevatorTest {
         elevator.interiorButtonPressed("open");
         Assertions.assertEquals(DoorStatus.OPEN, elevator.getDoorStatus());
 
-        // Close door is a placebo, door should stay open when "close" button is pressed
+        // Door should close when "close" button is pressed
         elevator.interiorButtonPressed("close");
-        Assertions.assertEquals(DoorStatus.OPEN, elevator.getDoorStatus());
+        Assertions.assertEquals(DoorStatus.CLOSED, elevator.getDoorStatus());
 
         // Door should close and elevator should be set to STATIONARY when emergency is pressed
         elevator.interiorButtonPressed("emergency");
@@ -289,8 +283,22 @@ class ElevatorTest {
         elevator.interiorButtonPressed("3");
         Assertions.assertEquals(FloorDirection.NONE, elevator.getFloorsToVisit().get(2));
 
+        // User should not be allowed to use elevator if current floor is less than default floor and unauthenticated
+        elevator.setDefaultFloor(1);
+        elevator.setCurrentFloor(0);
+        elevator.interiorButtonPressed("2");
+        Assertions.assertEquals(FloorDirection.NONE, elevator.getFloorsToVisit().get(1));
+
+        // User should be allowed to use elevator from below default floor if authenticated
+        // Authenticated should be set to false
+        elevator.setAuthenticated(true);
+        elevator.interiorButtonPressed("2");
+        Assertions.assertEquals(FloorDirection.UP, elevator.getFloorsToVisit().get(1));
+
         // User should be allowed to use elevator from default floor if authenticated
         // Authenticated should be set to false
+        elevator.setDefaultFloor(0);
+        elevator.setCurrentFloor(0);
         elevator.setFloorsToVisit(arr0000);
         elevator.setAuthenticated(true);
         elevator.interiorButtonPressed("3");

@@ -96,7 +96,10 @@ public class UI extends JFrame {
         for (JTextArea ta: statsTextAreas) {
             statsPanelCenter.add(ta);
         }
-        allowedFloorsTA = new JTextArea("Allowed Floors: " + getAllowedFloorAsString());
+        allowedFloorsTA = new JTextArea(elevator.getSecurityType().equals(SecurityType.SPECIFIED) ?
+                "Allowed Floors: " + getAllowedFloorAsString() :
+                ""
+        );
         allowedFloorsTA.setBackground(Color.gray);
         allowedFloorsTA.setAlignmentX(0.5f);
         allowedFloorsTA.setBorder(BorderFactory.createLineBorder(Color.black, 2));
@@ -151,7 +154,6 @@ public class UI extends JFrame {
                 downButtons.get(i).addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        System.out.println(e.getSource());
                        elevator.callButtonPressed(downButtons.indexOf(e.getSource()), FloorDirection.DOWN);
                        updateDownCallButtons(downButtons.indexOf(e.getSource()));
                        updateStats();
@@ -168,7 +170,6 @@ public class UI extends JFrame {
                 upButtons.get(i).addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        System.out.println(e.getSource());
                         elevator.callButtonPressed(upButtons.indexOf(e.getSource()), FloorDirection.UP);
                         updateUpCallButtons(upButtons.indexOf(e.getSource()));
                         updateStats();
@@ -414,6 +415,10 @@ public class UI extends JFrame {
         statsTextAreas.get(3).setText("Authentication: " + elevator.getAuthenticated().toString());
         statsTextAreas.get(4).setText("Direction: " + getDirectionAsString(elevator.getDirection()));
         statsTextAreas.get(5).setText("User: " + user.getName());
+        allowedFloorsTA.setText(elevator.getSecurityType().equals(SecurityType.SPECIFIED) ?
+                "Allowed Floors: " + getAllowedFloorAsString() :
+                ""
+        );
     }
 
     private String getAllowedFloorAsString() {
