@@ -3,7 +3,6 @@ package com.project.app.elevator;
 import com.project.app.util.DoorStatus;
 import com.project.app.util.FloorDirection;
 import com.project.app.util.SecurityType;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
