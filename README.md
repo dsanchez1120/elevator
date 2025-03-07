@@ -1,2 +1,6 @@
 # Elevator Application
-This application simulates the functionality of an elevator.
+Java application that simulates the functionality of an elevator. 
+
+Uses Maven build management.
+
+Detailed explanation of application design can be found in ```DESIGN.md``` file

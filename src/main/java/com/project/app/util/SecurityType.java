@@ -6,7 +6,7 @@ public enum SecurityType {
     SPECIFIED;
 
     /**
-     *
+     * Returns if user is authorized to access floor depending on Enum Constant
      * @param authorized boolean indicating if user is allowed to access building
      * @return boolean indicating if user is authenticated
      */

@@ -108,7 +108,7 @@ class ElevatorTest {
     }
 
     @Test
-    @DisplayName("Call Button Pressed With Invalid Inputs Should Succeed")
+    @DisplayName("Call Button Pressed With Invalid Inputs Should Fail")
     void callButtonPressed_failsWithInvalidInputs() {
         Assertions.assertThrows(NullPointerException.class,
             () -> elevator.callButtonPressed(0, null));
