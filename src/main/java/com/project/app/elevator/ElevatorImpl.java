@@ -8,8 +8,14 @@ import lombok.Data;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 @Data
 @Builder
@@ -25,6 +31,7 @@ public class ElevatorImpl implements Elevator {
     private Boolean authenticated;
     private int direction;
     private int currentFloor;
+    private final String PATH_TO_LOGS = "logs/app.log";
 
     private static final Logger logger = LogManager.getLogger(ElevatorImpl.class);
 
@@ -204,10 +211,35 @@ public class ElevatorImpl implements Elevator {
         }
     }
 
+    // Returns maintenance logs as a list
+    public List<String> getMaintenanceLogs() {
+        try {
+            return Files.readAllLines(Paths.get(PATH_TO_LOGS));
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return new ArrayList<>(List.of("File could not be read"));
+    }
+
+    public void clearMaintenanceLogs() {
+        try {
+            BufferedWriter writer = Files.newBufferedWriter(Paths.get(PATH_TO_LOGS));
+            writer.write("");
+            writer.flush();
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
     // Checks if user is authorized to access desiredFloor based on security.
     public boolean checkSecurity(int desiredFloor) {
         logger.info("Checking user authorization");
-        return securityType.isAuthorized(authenticated, currentFloor > defaultFloor, authorizedFloors.get(desiredFloor));
+        boolean authorized = securityType.isAuthorized(
+                authenticated,
+                currentFloor > defaultFloor,
+                authorizedFloors.get(desiredFloor));
+        logger.info("User authorization {}", authorized ? "succeeded" : "failed");
+        return authorized;
     }
 
 

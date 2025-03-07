@@ -48,6 +48,10 @@ public class UI extends JFrame {
     static JPanel controlPanelSouth;
     static JLabel controlLabel;
 
+    static JPanel maintenancePanel;
+    static JPanel maintenancePanelCenter;
+    static JLabel maintenanceLabel;
+
     // Elevator Variables
     private ElevatorImpl elevator;
     private User user;
@@ -61,17 +65,41 @@ public class UI extends JFrame {
         setSize(X_DIM, Y_DIM);
         setLayout(new BorderLayout());
 
+        // Initialize Elevator and User
         elevator = buildElevator(elevatorSetup());
         user = buildUser(userSetup());
 
+        // Clears maintenance logs from unit tests
+        elevator.clearMaintenanceLogs();
+
+        // Initializes frame components
         initializeElevatorPanel();
         initializeStatsPanel();
         initializeControlPanel();
+        initializeMaintenancePanel();
     }
 
+    // Initializes the maintenance panel which allows human user to display and clear maintenance logs
+    private void initializeMaintenancePanel() {
+        maintenancePanel = new JPanel(new BorderLayout());
+        maintenancePanel.setBackground(Color.LIGHT_GRAY);
+        maintenanceLabel = new JLabel("Maintenance Panel", SwingConstants.CENTER);
+        maintenanceLabel.setBorder(BorderFactory.createLineBorder(Color.black, 2));
+        maintenancePanel.add(maintenanceLabel, BorderLayout.NORTH);
+        maintenancePanel.setBorder(BorderFactory.createLineBorder(Color.black, 2));
+        maintenancePanelCenter = new JPanel(new GridLayout(1, 2));
+        maintenancePanelCenter.setBackground(Color.LIGHT_GRAY);
+        initializeMaintenancePanelCenter();
+        maintenancePanel.add(maintenanceLabel, BorderLayout.NORTH);
+        maintenancePanel.add(maintenancePanelCenter, BorderLayout.CENTER);
+        add(maintenancePanel, BorderLayout.SOUTH);
+    }
+
+    // Initializes the control panel which allows user to interact with application
     private void initializeControlPanel() {
         controlPanel = new JPanel(new BorderLayout());
         controlLabel = new JLabel("Control Panel", SwingConstants.CENTER);
+        controlLabel.setBorder(BorderFactory.createLineBorder(Color.black, 1));
         controlPanel.setBackground(Color.LIGHT_GRAY);
         controlPanel.add(controlLabel, BorderLayout.NORTH);
         controlPanel.setBorder(BorderFactory.createLineBorder(Color.black, 2));
@@ -86,6 +114,7 @@ public class UI extends JFrame {
         add(controlPanel, BorderLayout.EAST);
     }
 
+    // Initializes the stats panel which displays information about the elevator
     private void initializeStatsPanel() {
         statsPanel = new JPanel(new BorderLayout());
         statsLabel = new JLabel(simulationName, SwingConstants.CENTER);
@@ -96,6 +125,7 @@ public class UI extends JFrame {
         for (JTextArea ta: statsTextAreas) {
             statsPanelCenter.add(ta);
         }
+        // Only displays list of allowed floors if SecurityType is Specified.
         allowedFloorsTA = new JTextArea(elevator.getSecurityType().equals(SecurityType.SPECIFIED) ?
                 "Allowed Floors: " + getAllowedFloorAsString() :
                 ""
@@ -109,9 +139,11 @@ public class UI extends JFrame {
         add(statsPanel, BorderLayout.NORTH);
     }
 
+    // Initializes the elevator panel which contains the depiction of the elevator and exterior call buttons
     private void initializeElevatorPanel() {
         elevatorPanel = new JPanel(new BorderLayout());
         elevatorLabel = new JLabel("Elevator", SwingConstants.CENTER);
+        elevatorLabel.setBorder(BorderFactory.createLineBorder(Color.black, 1));
         elevatorPanel.setBackground(Color.LIGHT_GRAY);
         elevatorPanel.add(elevatorLabel, BorderLayout.NORTH);
         elevatorPanel.setBorder(BorderFactory.createLineBorder(Color.black, 2));
@@ -122,6 +154,44 @@ public class UI extends JFrame {
         add(elevatorPanel, BorderLayout.CENTER);
     }
 
+    // Initializes maintenance panel center which contains buttons for displaying and clearing maintenance logs
+    private void initializeMaintenancePanelCenter() {
+        JButton showMaintenanceLogs = new JButton("Show Maintenance Logs");
+        JButton clearMaintenanceLogs = new JButton("Clear Maintenance Logs");
+        showMaintenanceLogs.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JTextArea logsTA = new JTextArea(50, 1);
+                List<String> logs = elevator.getMaintenanceLogs();
+                for (int i = 0; i < logs.size(); i++) {
+                    logsTA.append(logs.get(i) + "\n");
+                }
+                JScrollPane scrollPane = new JScrollPane(logsTA);
+                scrollPane.setPreferredSize(new Dimension(750, 250));
+                JOptionPane.showMessageDialog(
+                        null,
+                        scrollPane,
+                        "Elevator Maintenance Logs",
+                        JOptionPane.OK_OPTION);
+            }
+        });
+        clearMaintenanceLogs.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                elevator.clearMaintenanceLogs();
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Maintenance Logs Cleared",
+                        "Notification",
+                        JOptionPane.OK_OPTION
+                );
+            }
+        });
+        maintenancePanelCenter.add(showMaintenanceLogs, BorderLayout.CENTER);
+        maintenancePanelCenter.add(clearMaintenanceLogs, BorderLayout.CENTER);
+    }
+
+    // Initializes elevator representation and exterior call buttons
     private void initializeElevatorPanelCenter() {
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
@@ -137,7 +207,7 @@ public class UI extends JFrame {
         }
         for (int i = 0; i < numFloors; i++) {
             int gridy = numFloors - (i + 1);
-            // Elevator Floor Square
+            // Configure Elevator Floor Squares
             c.gridx = 0;
             c.gridy = gridy;
             floorSquares.get(i).setBorder(BorderFactory.createLineBorder(Color.black, 2));
@@ -145,7 +215,8 @@ public class UI extends JFrame {
             floorSquares.get(i).setBackground(elevator.getCurrentFloor() != i ? Color.gray : Color.YELLOW);
             floorSquares.get(i).setEditable(false);
             elevatorPanelCenter.add(floorSquares.get(i), c);
-            // Down Button
+
+            // Configure Down Call Buttons
             c.gridx = 1;
             c.gridy = gridy;
             if (i != 0) {
@@ -154,14 +225,15 @@ public class UI extends JFrame {
                 downButtons.get(i).addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                       elevator.callButtonPressed(downButtons.indexOf(e.getSource()), FloorDirection.DOWN);
-                       updateDownCallButtons(downButtons.indexOf(e.getSource()));
-                       updateStats();
+                        // Updates elevator when down button is pressed. Updates button color to indicate a press.
+                        elevator.callButtonPressed(downButtons.indexOf(e.getSource()), FloorDirection.DOWN);
+                        updateDownCallButtons(downButtons.indexOf(e.getSource()));
+                        updateStats();
                     }
                 });
                 elevatorPanelCenter.add(downButtons.get(i), c);
             }
-            // Up Button
+            // Configure Up Call Buttons
             c.gridx = 2;
             c.gridy = gridy;
             if (i != numFloors - 1) {
@@ -170,6 +242,7 @@ public class UI extends JFrame {
                 upButtons.get(i).addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
+                        // Updates elevator when up button is pressed. Updates button color to indicate a press.
                         elevator.callButtonPressed(upButtons.indexOf(e.getSource()), FloorDirection.UP);
                         updateUpCallButtons(upButtons.indexOf(e.getSource()));
                         updateStats();
@@ -181,6 +254,7 @@ public class UI extends JFrame {
 
     }
 
+    // Initializes Elevator Buttons (Floor, open/close, and emergency buttons)
     private void initializeControlPanelCenter() {
         floorButtons = new ArrayList<>();
         openDoorButton = new JButton("Open Door");
@@ -196,6 +270,7 @@ public class UI extends JFrame {
             floorButtons.get(i).addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
+                    // Updates elevator when interior button is pressed. Button color is updated to indicate press
                     if (elevator.checkSecurity(elevator.getFloors().indexOf(e.getActionCommand()))) {
                         elevator.interiorButtonPressed(e.getActionCommand());
                         updateFloorButtons(elevator.getFloors().indexOf(e.getActionCommand()));
@@ -206,6 +281,7 @@ public class UI extends JFrame {
             floorButtonsPanel.add(floorButtons.get(i));
         }
         openDoorButton.addActionListener(new ActionListener() {
+            // Open door button opens elevator door, updates stats panel to indicate that the door is open.
             @Override
             public void actionPerformed(ActionEvent e) {
                 elevator.interiorButtonPressed("open");
@@ -213,6 +289,7 @@ public class UI extends JFrame {
             }
         });
         emergencyButton.addActionListener(new ActionListener() {
+            // Emergency button calls elevator emergency method. Updates all buttons to indicate clearing floor requests
             @Override
             public void actionPerformed(ActionEvent e) {
                 elevator.interiorButtonPressed("emergency");
@@ -224,6 +301,7 @@ public class UI extends JFrame {
             }
         });
         closeDoorButton.addActionListener(new ActionListener() {
+            // Close door button closes elevator door, updates stats panel to indicate that door is closed.
             @Override
             public void actionPerformed(ActionEvent e) {
                 elevator.interiorButtonPressed("close");
@@ -239,6 +317,7 @@ public class UI extends JFrame {
         controlPanelCenter.add(functionButtonsPanel, BorderLayout.SOUTH);
     }
 
+    // Initializes simulation control buttons (move floor, authenticate, change user, change elevator)
     private void initializeControlPanelSouth() {
         // Initialize Buttons
         JButton moveFloorButton = new JButton("Move Floor");
@@ -248,6 +327,7 @@ public class UI extends JFrame {
 
         // Adds functionality to buttons
         moveFloorButton.addActionListener(new ActionListener() {
+            // Calls move floor elevator button, updates all components to display elevator movement
             @Override
             public void actionPerformed(ActionEvent e) {
                 elevator.moveCurrentFloor();
@@ -259,6 +339,7 @@ public class UI extends JFrame {
             }
         });
         changeUserButton.addActionListener(new ActionListener() {
+            // Changes user based on user input, updates allowed Floors display in stats panel
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
@@ -271,6 +352,7 @@ public class UI extends JFrame {
             }
         });
         authorizeButton.addActionListener(new ActionListener() {
+            // Calls elevator authenticate method, updates stats panel to display.
             @Override
             public void actionPerformed(ActionEvent e) {
                 elevator.authenticate(user.getName(), (ArrayList<Boolean>) user.getAuthorizedFloors().clone());
@@ -280,6 +362,7 @@ public class UI extends JFrame {
         changeElevatorButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // Changes elevator and user based on user inputs, updates entire frame to reflect changes
                 try {
                     elevator = buildElevator(elevatorSetup());
                     user = buildUser(userSetup());
@@ -299,6 +382,7 @@ public class UI extends JFrame {
         controlPanelSouth.add(changeElevatorButton);
     }
 
+    // Initializes the stats text areas that display information about the elevator
     private void initializeStatsTextAreas() {
         statsTextAreas = new ArrayList<>(
                 Arrays.asList(
@@ -309,6 +393,7 @@ public class UI extends JFrame {
                         new JTextArea("Direction: " + getDirectionAsString(elevator.getDirection())),
                         new JTextArea("User: " + user.getName()))
                 );
+        // Sets proper colors and prevents text boxes from being edited
         for (int i = 0; i < statsTextAreas.size(); i++) {
             statsTextAreas.get(i).setEditable(false);
             statsTextAreas.get(i).setBorder(BorderFactory.createLineBorder(Color.black));
@@ -316,6 +401,7 @@ public class UI extends JFrame {
         }
     }
 
+    // Updates elevator representation
     private void updateFloorSquares() {
         for (int i = 0; i < numFloors; i++) {
             if (i == elevator.getCurrentFloor()) {
@@ -326,6 +412,7 @@ public class UI extends JFrame {
         }
     }
 
+    // Updates the up call buttons to display correct color
     private void updateUpCallButtons(int index) {
         for (int i = 0; i < numFloors - 1; i++) {
             if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE) ||
@@ -337,6 +424,7 @@ public class UI extends JFrame {
         }
     }
 
+    // Updates the down call buttons to display correct color
     private void updateDownCallButtons(int index) {
         for (int i = 1; i < numFloors; i++) {
             if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE) ||
@@ -348,6 +436,7 @@ public class UI extends JFrame {
         }
     }
 
+    // Updates the floor buttons to display correct color
     private void updateFloorButtons(int index) {
         for (int i = 0; i < numFloors; i++) {
             if (elevator.getFloorsToVisit().get(i).equals(FloorDirection.NONE) ||
@@ -359,6 +448,7 @@ public class UI extends JFrame {
         }
     }
 
+    // Resets components for simulation when new elevator is selected
     private void elevatorReset() {
         elevatorPanel.removeAll();
         initializeElevatorPanel();
@@ -368,6 +458,7 @@ public class UI extends JFrame {
         revalidate();
     }
 
+    // Gets human user input for selecting a new elevator
     private String elevatorSetup() {
         File elevatorDir = new File(ELEVATOR_CONFIG_DIRECTORY_PATH);
         File[] elevatorFilesUntransformed = elevatorDir.listFiles(
@@ -388,6 +479,7 @@ public class UI extends JFrame {
         return elevatorChoice.toString();
     }
 
+    // Gets human user input for selecting a new user
     private String userSetup() {
         File userDir = new File(USERS_CONFIG_DIRECTORY_PATH + numFloors);
         File[] userFilesUntransformed = userDir.listFiles(
@@ -408,6 +500,7 @@ public class UI extends JFrame {
         return userChoice.toString();
     }
 
+    // Updates the stats panel to reflect changes in the elevator
     private void updateStats() {
         statsTextAreas.get(0).setText("Security: " + elevator.getSecurityType().toString());
         statsTextAreas.get(1).setText("Current Floor: " + (elevator.getFloors().get(elevator.getCurrentFloor())));
@@ -421,16 +514,18 @@ public class UI extends JFrame {
         );
     }
 
+    // Gets list of floors that user is allowed to access as a string to be displayed in stats panel
     private String getAllowedFloorAsString() {
         StringBuilder output = new StringBuilder();
         for (int i = 0; i < numFloors; i++) {
             if (user.getAuthorizedFloors().get(i)) {
-                output.append(i == numFloors - 1 ? elevator.getFloors().get(i) : (elevator.getFloors().get(i) + ", "));
+                output.append(i == numFloors - 1 ? elevator.getFloors().get(i) : (elevator.getFloors().get(i) + " "));
             }
         }
-        return output.toString();
+        return output.toString().substring(0, output.length());
     }
 
+    // Converts int direction into String to be displayed in stats panel
     private String getDirectionAsString(int direction) {
         return switch (direction) {
             case 1 -> "UP";
@@ -440,6 +535,7 @@ public class UI extends JFrame {
         };
     }
 
+    // Initializes or resets elevator object
     private ElevatorImpl buildElevator(String elevatorName) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonNode = objectMapper.readTree(new File("config/elevator/" + elevatorName + ".json"));
@@ -463,6 +559,7 @@ public class UI extends JFrame {
                 .build();
     }
 
+    // Initializers or resets user object
     private User buildUser(String userName) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonNode = objectMapper.readTree(new File("config/users/" + numFloors + "/" + userName + ".json"));
